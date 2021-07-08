@@ -1,0 +1,4 @@
+*.png
+*.jpg
+!masks-02/*.jpg
+!02.jpg
