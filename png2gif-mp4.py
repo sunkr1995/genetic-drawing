@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2021-07-02 18:13:07
-LastEditTime: 2021-07-08 13:49:31
+LastEditTime: 2021-07-08 16:41:27
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /genetic-drawing/3.py
@@ -26,18 +26,30 @@ def png2gif(source, gifname, time):
 
 def png2mp4(source, name):
     fps = 30    #FPS
-    size=(360, 640)    #图片、视频尺寸
+    size=(958, 720)    #图片、视频尺寸 w,h
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     videoWriter = cv2.VideoWriter(name,fourcc,fps,size, True)
     file_list = os.listdir(source) # os.listdir()：文件夹中的文件/文件夹的名字列表
     frames = [] #读入缓冲区
     file_list = sorted(file_list)
-    for png in file_list:
-        frame = cv2.imread(os.path.join(source,png))
-        videoWriter.write(frame)
+    if len(file_list) < 400:
+        for png in file_list:
+            frame = cv2.imread(os.path.join(source,png))
+            videoWriter.write(frame)
+    else:
+        for i in range(len(file_list)):
+            if i < 400:
+                png = file_list[i]
+                frame = cv2.imread(os.path.join(source,png))
+                videoWriter.write(frame)
+            else:
+                if i%5==0:
+                    png = file_list[i]
+                    frame = cv2.imread(os.path.join(source,png))
+                    videoWriter.write(frame)
     videoWriter.release()
 
  
 address = "out"
 #png2gif(address, '02.gif', 0.1)
-png2mp4(address, '01.mp4')
+png2mp4(address, '03.mp4')
