@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import string
 import random
 from IPython.display import clear_output
+from tqdm import tqdm
 
 class GeneticDrawing:
     def __init__(self, img_path, seed=0, brushesRange=[[0.1, 0.3], [0.3, 0.7]]):
@@ -17,10 +18,10 @@ class GeneticDrawing:
         self.sampling_mask = None
         
         #start with an empty black img
-        self.imgBuffer = [np.zeros((self.img_grey.shape[0], self.img_grey.shape[1]), np.uint8)]
+        self.imgBuffer = [np.zeros((self.img_grey.shape[0], self.img_grey.shape[1],3), np.uint8) + 255]
         
-    def generate(self, stages=10, generations=100, brushstrokesCount=10, show_progress_imgs=True):
-        for s in range(stages):
+    def generate(self, stages=10, generations=100, brushstrokesCount=10, show_progress_imgs=False):
+        for s in tqdm(range(stages)):
             #initialize new DNA
             if self.sampling_mask is not None:
                 sampling_mask = self.sampling_mask
@@ -31,15 +32,19 @@ class GeneticDrawing:
                              self.calcBrushRange(s, stages), 
                              canvas=self.imgBuffer[-1], 
                              sampling_mask=sampling_mask)
-            self.myDNA.initRandom(self.img_grey, brushstrokesCount, self.seed + time.time() + s)
+            self.myDNA.initRandom(self.original_img, brushstrokesCount, self.seed + time.time() + s)
             #evolve DNA
             for g in range(generations):
-                self.myDNA.evolveDNASeq(self.img_grey, self.seed + time.time() + g)
-                clear_output(wait=True)
-                print("Stage ", s+1, ". Generation ", g+1, "/", generations)
+                self.myDNA.evolveDNASeq(self.original_img, self.seed + time.time() + g)  ### 需要修改
+                #clear_output(wait=True)
+                #print("Stage ", s+1, ". Generation ", g+1, "/", generations)
                 if show_progress_imgs is True:
+                    print("Stage ", s+1, ". Generation ", g+1, "/", generations)
+                    clear_output(wait=True)
                     #plt.imshow(sampling_mask, cmap='gray')
                     plt.imshow(self.myDNA.get_cached_image(), cmap='gray')
+                    #cv2.imshow('test',self.myDNA.get_cached_image())
+
                     plt.show()
             self.imgBuffer.append(self.myDNA.get_cached_image())
         return self.myDNA.get_cached_image()
@@ -158,7 +163,7 @@ class DNA:
         #initialize random DNA sequence
         for i in range(count):
             #random color
-            color = random.randrange(0, 255)
+            color = [random.randrange(0, 255),random.randrange(0, 255),random.randrange(0, 255)]
             #random size
             random.seed(seed-i+4)
             size = random.random()*(self.maxSize-self.minSize) + self.minSize
@@ -206,7 +211,7 @@ class DNA:
     def drawAll(self, DNASeq):
         #set image to pre generated
         if self.canvas is None: #if we do not have an image specified
-            inImg = np.zeros((self.bound[0], self.bound[1]), np.uint8)
+            inImg = np.zeros((self.bound[0], self.bound[1],3), np.uint8)
         else:
             inImg = np.copy(self.canvas)
         #apply padding
@@ -218,7 +223,7 @@ class DNA:
         #remove padding
         y = inImg.shape[0]
         x = inImg.shape[1]
-        return inImg[p:(y-p), p:(x-p)]       
+        return inImg[p:(y-p), p:(x-p),:]       
         
     def __drawDNA(self, DNA, inImg):
         #get DNA data
@@ -236,23 +241,25 @@ class DNA:
         #rotate
         brushImg = self.__rotateImg(brushImg, rotation)
         #brush img data
-        brushImg = cv2.cvtColor(brushImg,cv2.COLOR_BGR2GRAY)
-        rows, cols = brushImg.shape
+        #brushImg = cv2.cvtColor(brushImg,cv2.COLOR_BGR2GRAY)  #### 需要修改
+        rows, cols,_ = brushImg.shape
         
-        #create a colored canvas
-        myClr = np.copy(brushImg)
-        myClr[:, :] = color
-
         #find ROI
-        inImg_rows, inImg_cols = inImg.shape
+        inImg_rows, inImg_cols, inImg_channel= inImg.shape
         y_min = int(posY - rows/2)
         y_max = int(posY + (rows - rows/2))
         x_min = int(posX - cols/2)
         x_max = int(posX + (cols - cols/2))
+
+        #create a colored canvas
+        myClr = np.copy(brushImg)
+        myClr[:, :,0] = color[0]   #### 需要修改
+        myClr[:, :,1] = color[1]
+        myClr[:, :,2] = color[2]
         
         # Convert uint8 to float
-        foreground = myClr[0:rows, 0:cols].astype(float)
-        background = inImg[y_min:y_max,x_min:x_max].astype(float) #get ROI
+        foreground = myClr[0:rows, 0:cols,:].astype(float)   #### 需要修改
+        background = inImg[y_min:y_max,x_min:x_max,:].astype(float) #get ROI   #### 需要修改
         # Normalize the alpha mask to keep intensity between 0 and 1
         alpha = brushImg.astype(float)/255.0
         
@@ -266,7 +273,7 @@ class DNA:
             # Add the masked foreground and background.
             outImage = (np.clip(cv2.add(foreground, background), 0.0, 255.0)).astype(np.uint8)
             
-            inImg[y_min:y_max, x_min:x_max] = outImage
+            inImg[y_min:y_max, x_min:x_max,:] = outImage   #### 需要修改
         except:
             print('------ \n', 'in image ',inImg.shape)
             print('pivot: ', posY, posX)
@@ -309,10 +316,20 @@ class DNA:
         changeIndices[:] = changeIndices[::-1]
         for changeIndex in changeIndices:
             if changeIndex == 0:# if color
-                child[0] = int(random.randrange(0, 255))
+                pass
+                #child[0] = [int(random.randrange(0, 255)),int(random.randrange(0, 255)),int(random.randrange(0, 255))]  #### 需要修改
                 #print('new color: ', child[0])
             elif changeIndex == 1 or changeIndex == 2:#if pos Y or X
                 child[1], child[2] = self.gen_new_positions()
+                #print('new posY: ', child[1], ' / ', self.bound[0])
+                #print('new posX: ', child[2],  ' / ', self.bound[1])  
+                #print (self.padding )
+                posX = int(child[2]) #add padding since indices have shifted
+                posY = int(child[1])
+                color0 = inImg[posY,posX,0]
+                color1 = inImg[posY,posX,1]
+                color2 = inImg[posY,posX,2]
+                child[0] = [color0,color1,color2]
                 #print('new posY: ', child[1], ' / ', self.bound[0])
                 #print('new posX: ', child[2],  ' / ', self.bound[1])  
             elif changeIndex == 3: #if size

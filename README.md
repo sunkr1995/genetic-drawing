@@ -1,3 +1,11 @@
+<!--
+ * @Author: your name
+ * @Date: 2021-06-18 10:04:20
+ * @LastEditTime: 2021-07-08 14:43:43
+ * @LastEditors: Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: /genetic-drawing/README.md
+-->
 # Genetic Drawing
 This is a toy project I did around 2017 for imitating a drawing process given a target image (inspired by many examples of genetic drawing on the internet, and this was my take on it, mostly as an exercise). 
 
@@ -22,3 +30,9 @@ you would need the following python 3 libraries:
 * and Jupyter Notebook
 
 To start, open the GeneticDrawing.ipynb and run the example code
+
+
+## 添加功能
+
+添加彩色绘图的功能
+<img src="02.gif">
